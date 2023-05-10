@@ -1,27 +1,22 @@
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
+import numpy as np
 
 # Load the training dataset
 train_dataset = pd.read_csv('adult-training.csv', delimiter=',', header=None, names=['age', 'workclass', 'fnlwgt', 'education', 'education-num', 'marital-status', 'occupation', 'relationship', 'race', 'sex', 'capital-gain', 'capital-loss', 'hours-per-week', 'native-country', 'income'])
-
-# Filter out rows with invalid data
-train_dataset = train_dataset[train_dataset['age'] != '|1x3 Cross validator']
-
 X_train = train_dataset.drop('income', axis=1)
 y_train = train_dataset['income']
 
 # Load the testing dataset
 test_dataset = pd.read_csv('adult-test.csv', delimiter=',', header=None, names=['age', 'workclass', 'fnlwgt', 'education', 'education-num', 'marital-status', 'occupation', 'relationship', 'race', 'sex', 'capital-gain', 'capital-loss', 'hours-per-week', 'native-country', 'income'])
-
-# Filter out rows with invalid data
-test_dataset = test_dataset[test_dataset['age'] != '|1x3 Cross validator']
-
 X_test = test_dataset.drop('income', axis=1)
 y_test = test_dataset['income']
 
 # Drop rows with missing labels in y_test
+missing_label_rows = y_test.isna()
+X_test = X_test.loc[~missing_label_rows]
 y_test = y_test.dropna()
 
 # Clean labels in y_train and y_test
@@ -33,25 +28,28 @@ label_encoder = LabelEncoder()
 y_train = label_encoder.fit_transform(y_train)
 y_test = label_encoder.transform(y_test)
 
-# Convert categorical columns to strings
-categorical_columns = ['workclass', 'education', 'marital-status', 'occupation', 'relationship', 'race', 'sex', 'native-country']
-X_train[categorical_columns] = X_train[categorical_columns].astype(str)
-X_test[categorical_columns] = X_test[categorical_columns].astype(str)
+# Convert numeric columns to strings
+numeric_columns = ['age', 'fnlwgt', 'education-num', 'capital-gain', 'capital-loss', 'hours-per-week']
+X_train[numeric_columns] = X_train[numeric_columns].astype(str)
+X_test[numeric_columns] = X_test[numeric_columns].astype(str)
 
-# Apply one-hot encoding
-X_train_encoded = pd.get_dummies(X_train, columns=categorical_columns)
-X_test_encoded = pd.get_dummies(X_test, columns=categorical_columns)
+# Encode the categorical features using label encoding
+categorical_features = ['workclass', 'education', 'marital-status', 'occupation', 'relationship', 'race', 'sex', 'native-country']
+X_train_encoded = X_train.copy()
+X_test_encoded = X_test.copy()
 
-# Align the encoded training and testing datasets
-X_train_encoded, X_test_encoded = X_train_encoded.align(X_test_encoded, join='outer', axis=1, fill_value=0)
+for feature in categorical_features:
+    label_encoder = LabelEncoder()
+    X_train_encoded[feature] = label_encoder.fit_transform(X_train[feature])
+    X_test_encoded[feature] = label_encoder.transform(X_test[feature])
 
-# Create and train the random forest model
-clf = RandomForestClassifier()
+# Train the model
+clf = GradientBoostingClassifier(n_estimators=100, max_depth=3, learning_rate=0.1, subsample=1.0)
 clf.fit(X_train_encoded, y_train)
 
 # Make predictions on the testing set
 y_pred = clf.predict(X_test_encoded)
 
-# Calculate accuracy
+# Evaluate the model
 accuracy = accuracy_score(y_test, y_pred)
 print("Accuracy:", accuracy)
