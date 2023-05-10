@@ -1,8 +1,8 @@
+import pandas as pd
+from scipy.stats import chi2_contingency
+from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score
-from sklearn.preprocessing import LabelEncoder
-import pandas as pd
-import numpy as np
 
 # Load the training dataset
 train_dataset = pd.read_csv('adult-training.csv', delimiter=',', header=None, names=['age', 'workclass', 'fnlwgt', 'education', 'education-num', 'marital-status', 'occupation', 'relationship', 'race', 'sex', 'capital-gain', 'capital-loss', 'hours-per-week', 'native-country', 'income'])
@@ -53,3 +53,17 @@ y_pred = clf.predict(X_test_encoded)
 # Evaluate the model
 accuracy = accuracy_score(y_test, y_pred)
 print("Accuracy:", accuracy)
+
+# Perform hypothesis test
+data = pd.DataFrame({'sex': X_test['sex'], 'income': y_test})
+data = data.dropna()
+
+contingency_table = pd.crosstab(data['sex'], data['income'])
+chi2, p, dof, expected = chi2_contingency(contingency_table)
+
+# Interpret the results
+alpha = 0.05
+if p < alpha:
+    print("There is evidence of an association between gender and income.")
+else:
+    print("There is no evidence of an association between gender and income.")

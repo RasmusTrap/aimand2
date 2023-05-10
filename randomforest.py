@@ -1,6 +1,7 @@
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import LabelEncoder
+from scipy.stats import chi2_contingency
 import pandas as pd
 
 # Load the training dataset
@@ -55,3 +56,17 @@ y_pred = clf.predict(X_test_encoded)
 # Calculate accuracy
 accuracy = accuracy_score(y_test, y_pred)
 print("Accuracy:", accuracy)
+
+# Perform hypothesis test
+data = pd.DataFrame({'sex': X_test['sex'], 'income': y_test})
+data = data.dropna()
+
+contingency_table = pd.crosstab(data['sex'], data['income'])
+chi2, p, dof, expected = chi2_contingency(contingency_table)
+
+# Interpret the results
+alpha = 0.05
+if p < alpha:
+    print("There is evidence of an association between gender and income.")
+else:
+    print("There is no evidence of an association between gender and income.")
